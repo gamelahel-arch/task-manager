@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Task Manager</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #f8f9fa;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 2rem;
+    }
+    .container {
+      max-width: 600px;
+      width: 100%;
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 1rem;
+      font-size: 1.5rem;
+    }
+    .task-form {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .task-form input {
+      flex: 1;
+      padding: 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+    .task-form button {
+      padding: 0.75rem 1.5rem;
+      background: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    .task-form button:hover { background: #1d4ed8; }
+    .task-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .task-list li {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      margin-bottom: 0.5rem;
+    }
+    .task-list li.completed .task-text {
+      text-decoration: line-through;
+      color: #9ca3af;
+    }
+    .task-text { flex: 1; }
+    .task-actions button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1.2rem;
+    }
+    .empty-state {
+      text-align: center;
+      color: #9ca3af;
+      padding: 2rem;
+    }
+    .filter {
+      margin-bottom: 1rem;
+    }
+    .filter button {
+      margin-right: 0.5rem;
+      padding: 0.5rem 1rem;
+      border: 1px solid #ddd;
+      background: white;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .filter button.active {
+      background: #2563eb;
+      color: white;
+      border-color: #2563eb;
+    }
+    .stats {
+      text-align: center;
+      color: #6b7280;
+      font-size: 0.875rem;
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📋 Task Manager</h1>
+    <form class="task-form" id="taskForm">
+      <input type="text" id="taskInput" placeholder="Add a new task..." autocomplete="off">
+      <button type="submit">Add</button>
+    </form>
+    <div class="filter">
+      <button data-filter="all" class="active">All</button>
+      <button data-filter="active">Active</button>
+      <button data-filter="completed">Completed</button>
+    </div>
+    <ul class="task-list" id="taskList"></ul>
+    <div class="stats" id="stats"></div>
+  </div>
+
+  <script>
+    let tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
+    let filter = 'all';
+
+    function save() {
+      localStorage.setItem('tasks', JSON.stringify(tasks));
+      render();
+    }
+
+    function addTask(text) {
+      tasks.unshift({ id: Date.now(), text, completed: false });
+      save();
+    }
+
+    function toggleTask(id) {
+      tasks = tasks.map(t => t.id === id ? {...t, completed: !t.completed} : t);
+      save();
+    }
+
+    function deleteTask(id) {
+      tasks = tasks.filter(t => t.id !== id);
+      save();
+    }
+
+    function render() {
+      const list = document.getElementById('taskList');
+      const visible = tasks.filter(t => filter === 'all' ? true : filter === 'active' ? !t.completed : t.completed);
+      list.innerHTML = visible.length ? visible.map(t => `
+        <li class="${t.completed ? 'completed' : ''}">
+          <input type="checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTask(${t.id})">
+          <span class="task-text">${t.text}</span>
+          <button class="task-actions" onclick="deleteTask(${t.id})">✕</button>
+        </li>
+      `).join('') : '<li class="empty-state">No tasks yet</li>';
+
+      const total = tasks.length;
+      const active = tasks.filter(t => !t.completed).length;
+      const completed = total - active;
+      document.getElementById('stats').textContent = `${completed}/${total} completed`;
+    }
+
+    document.getElementById('taskForm').addEventListener('submit', e => {
+      e.preventDefault();
+      const input = document.getElementById('taskInput');
+      if (input.value.trim()) {
+        addTask(input.value.trim());
+        input.value = '';
+      }
+    });
+
+    document.querySelectorAll('[data-filter]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelector('.filter .active')?.classList.remove('active');
+        btn.classList.add('active');
+        filter = btn.dataset.filter;
+        render();
+      });
+    });
+
+    render();
+  </script>
+</body>
+</html>
